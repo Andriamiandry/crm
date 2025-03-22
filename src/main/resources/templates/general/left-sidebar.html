@@ -33,6 +33,7 @@
                     </a>
                     <ul class="collapse">
                         <li><a th:href="${home + 'employee/settings/google-services'}">Google setting</a></li>
+                        <li><a th:href="${home + 'employee/data/view'}">Data setting</a></li>
                         <li>
                             <a href="javascript:void(0)" class="has-arrow">Notification setting</a>
                             <ul class="collapse">
@@ -186,7 +187,7 @@
                         </li>
                     </ul>
                 </li>
-                <li class="nav-small-cap">--- Tickets</li>
+                <li class="nav-small-cap">--- Tickets modiff</li>
                 <li>
                     <a class="waves-effect waves-dark" th:href="${home + 'customer/my-tickets'}">
                         <i class="fas fa-ticket-alt"></i>
@@ -201,6 +202,16 @@
                         <span class="hide-menu">My Leads</span>
                     </a>
                 </li>
+                
+                <!-- ------- -->
+                <li class="nav-small-cap">--- Data</li>
+                <li>
+                    <a class="waves-effect waves-dark" th:href="${home + 'customer/my-tickets'}">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span class="hide-menu">My Tickets</span>
+                    </a>
+                </li>
+                 <!-- --------- -->
 
                 <li class="nav-small-cap">--- Contracts</li>
                 <li>
