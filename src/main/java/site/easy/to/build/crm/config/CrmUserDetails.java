@@ -11,8 +11,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import site.easy.to.build.crm.repository.UserRepository;
 import site.easy.to.build.crm.entity.User;
+import site.easy.to.build.crm.repository.UserRepository;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,37 +23,47 @@ import java.util.stream.Collectors;
 public class CrmUserDetails implements UserDetailsService {
 
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     @Autowired
-    HttpSession session;
-    @Autowired
-    private HttpServletResponse request;
+    private HttpSession session;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        String crmUsername, password;
-        User user = userRepository.findByUsername(username).size() == 1  ? userRepository.findByUsername(username).get(0) : null;
-        List<GrantedAuthority> authorities;
-        if(user == null) {
-            throw new UsernameNotFoundException("user details not found for the user : " + username);
-        } else {
-            if(user.getStatus().equals("suspended")) {
-                HttpServletResponse httpServletResponse =
-                        ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getResponse();
-                try {
-                    assert httpServletResponse != null;
-                    httpServletResponse.sendRedirect("/account-suspended");
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            password = user.getPassword();
-            session.setAttribute("loggedInUserId", user.getId());
-            authorities = user.getRoles().stream()
-                    .map(role -> new SimpleGrantedAuthority(role.getName()))
-                    .collect(Collectors.toList());
+        // Recherchez l'utilisateur dans la base de données
+        List<User> users = userRepository.findByUsername(username);
+        if (users.isEmpty()) {
+            throw new UsernameNotFoundException("User not found with username: " + username);
         }
 
-        return new org.springframework.security.core.userdetails.User(username,password,authorities);
+        User user = users.get(0); // Prenez le premier utilisateur trouvé
+
+        // Vérifiez si l'utilisateur est suspendu
+        if ("suspended".equals(user.getStatus())) {
+            HttpServletResponse response = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getResponse();
+            if (response != null) {
+                try {
+                    response.sendRedirect("/account-suspended");
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to redirect to account-suspended page", e);
+                }
+            }
+            return null; // Retournez null pour éviter de créer un UserDetails invalide
+        }
+
+        // Récupérez les rôles de l'utilisateur
+        List<GrantedAuthority> authorities = user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .collect(Collectors.toList());
+
+        // Stockez l'ID de l'utilisateur dans la session
+        session.setAttribute("loggedInUserId", user.getId());
+
+        // Créez et retournez un objet UserDetails
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                authorities
+        );
     }
 }

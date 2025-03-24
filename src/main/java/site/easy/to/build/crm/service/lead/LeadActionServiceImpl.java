@@ -1,8 +1,9 @@
 package site.easy.to.build.crm.service.lead;
 
 import org.springframework.stereotype.Service;
-import site.easy.to.build.crm.repository.LeadActionRepository;
+
 import site.easy.to.build.crm.entity.LeadAction;
+import site.easy.to.build.crm.repository.LeadActionRepository;
 
 @Service
 public class LeadActionServiceImpl implements LeadActionService{

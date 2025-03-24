@@ -20,12 +20,26 @@ public class DataRepository {
     @Transactional
     public String resetDatabase() {
         try {
-            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0").executeUpdate();
-            entityManager.createNativeQuery("TRUNCATE TABLE employee").executeUpdate();
-            entityManager.createNativeQuery("TRUNCATE TABLE email_template").executeUpdate();
-            entityManager.createNativeQuery("TRUNCATE TABLE customer_login_info").executeUpdate();
-            entityManager.createNativeQuery("TRUNCATE TABLE customer").executeUpdate();
-            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1").executeUpdate();
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 0;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE employee;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE email_template;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE customer_login_info;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE customer;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE trigger_lead;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE trigger_ticket;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE trigger_contract;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE contract_settings;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE lead_action;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE lead_settings;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE ticket_settings;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE file;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE google_drive_file;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE trigger_lead_histo;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE lead_expense;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE trigger_ticket_histo;").executeUpdate();
+            entityManager.createNativeQuery("TRUNCATE TABLE ticket_expense;").executeUpdate();
+            entityManager.createNativeQuery("SET FOREIGN_KEY_CHECKS = 1;").executeUpdate(); 
+
             
         } catch (Exception e) {
             return "Failed to Reset : "+e.getMessage();
@@ -40,8 +54,10 @@ public String importCSV(String csvFile) {
         String line;
         String[] headers = null;
 
+        String regex = ";";
+
         if ((line = br.readLine()) != null) {
-            headers = line.split(","); // Supposons que le CSV est séparé par des virgules
+            headers = line.split(regex); // Supposons que le CSV est séparé par des virgules
         }
 
         if (headers == null || headers.length == 0) {
@@ -53,13 +69,14 @@ public String importCSV(String csvFile) {
         createTempTable(tempTableName, headers);
 
         while ((line = br.readLine()) != null) {
-            String[] values = line.split(",");
+            String[] values = line.split(regex);
             insertDataIntoTable(tempTableName, headers, values);
         }
 
         saveTempTableName(tempTableName);
 
         // ---------------------------------------------------------
+            
         // ---------------------------------------------------------
 
         br.close();
@@ -77,23 +94,29 @@ private String generateTempTableName() {
 }
 
 private void createTempTable(String tableName, String[] headers) {
-    StringBuilder sql = new StringBuilder("CREATE TABLE " + tableName + " (");
+    StringBuilder sql = new StringBuilder("CREATE TABLE `" + tableName + "` (");
     sql.append("id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, ");
 
     for (String header : headers) {
-        sql.append(header).append(" VARCHAR(255), "); // Supposons que toutes les colonnes sont de type VARCHAR
+        sql.append("`").append(header).append("` VARCHAR(255) ,");
     }
 
-    sql.delete(sql.length() - 2, sql.length()); // Supprimer la dernière virgule
+    sql.delete(sql.length() - 1, sql.length()); // Supprimer la dernière virgule
     sql.append(");");
 
+    
+    // System.out.println("---------------");
+    // System.out.println(sql.toString());
+    // System.out.println("---------------");
+    
     entityManager.createNativeQuery(sql.toString()).executeUpdate();
+
 }
 
 private void insertDataIntoTable(String tableName, String[] headers, String[] values) {
     StringBuilder sql = new StringBuilder("INSERT INTO " + tableName + " (");
     for (String header : headers) {
-        sql.append(header).append(", ");
+        sql.append("`").append(header).append("`").append(", ");
     }
     sql.delete(sql.length() - 2, sql.length()); // Supprimer la dernière virgule
     sql.append(") VALUES (");
