@@ -2,14 +2,21 @@ package site.easy.to.build.crm.service.budget;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import site.easy.to.build.crm.Dto.BudgetDto;
 import site.easy.to.build.crm.entity.Budget;
+import site.easy.to.build.crm.entity.Customer;
 import site.easy.to.build.crm.entity.RateConfig;
+import site.easy.to.build.crm.entity.TriggerLeadHisto;
 import site.easy.to.build.crm.repository.BudgetRepository;
+import site.easy.to.build.crm.service.customer.CustomerService;
 import site.easy.to.build.crm.service.rate.RateConfigService;
 import site.easy.to.build.crm.service.expense.ExpenseService;
 
@@ -19,11 +26,14 @@ public class BudgetService {
     private final ExpenseService expenseService;
     private final RateConfigService rateConfigService;
 
+    private final CustomerService customerService;
+
     public BudgetService(BudgetRepository budgetRepository, ExpenseService expenseService,
-            RateConfigService rateConfigService) {
+                         RateConfigService rateConfigService, CustomerService customerService) {
         this.budgetRepository = budgetRepository;
         this.expenseService = expenseService;
         this.rateConfigService = rateConfigService;
+        this.customerService = customerService;
     }
 
     public Budget save(Budget budget) {
@@ -33,6 +43,10 @@ public class BudgetService {
 
     public List<Budget> getCustomerBudgets(int customerId) {
         return budgetRepository.findByCustomerCustomerId(customerId);
+    }
+
+    public List<Budget> getTriggerLeadHistoBetweenDates(LocalDate startDate, LocalDate endDate) {
+        return budgetRepository.findBudgetsBetweenDates(startDate, endDate);
     }
 
     public BigDecimal getTotalCustomerBudgets(int customerId) {
@@ -73,4 +87,6 @@ public class BudgetService {
 
         return pourcentageDepense.compareTo(tauxAlert) >= 0;
     }
+
+
 }

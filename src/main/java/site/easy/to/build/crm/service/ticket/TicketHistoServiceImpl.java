@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import site.easy.to.build.crm.entity.TicketHisto;
 import site.easy.to.build.crm.repository.TicketHistoRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -12,6 +13,16 @@ public class TicketHistoServiceImpl implements TicketHistoService{
 
     public TicketHistoServiceImpl(TicketHistoRepository ticketHistoRepository) {
         this.ticketHistoRepository = ticketHistoRepository;
+    }
+
+    @Override
+    public List<TicketHisto> getAll() {
+        return ticketHistoRepository.findByDeleteAtIsNull();
+    }
+
+    @Override
+    public List<TicketHisto> getBetweenDate(LocalDateTime date1, LocalDateTime date2){
+        return ticketHistoRepository.getBetweenDate(date1,date2);
     }
 
     @Override

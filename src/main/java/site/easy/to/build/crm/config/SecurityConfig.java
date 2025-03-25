@@ -2,8 +2,6 @@ package site.easy.to.build.crm.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -11,6 +9,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -25,35 +24,25 @@ import site.easy.to.build.crm.config.api.ApiUserDetails;
 import site.easy.to.build.crm.config.api.JWTFilter;
 import site.easy.to.build.crm.config.oauth2.CustomOAuth2UserService;
 import site.easy.to.build.crm.config.oauth2.OAuthLoginSuccessHandler;
-import site.easy.to.build.crm.service.user.OAuthUserService;
-import site.easy.to.build.crm.util.StringUtils;
-
-import java.util.Optional;
 
 
 @Configuration
 public class SecurityConfig {
 
-
     private final OAuthLoginSuccessHandler oAuth2LoginSuccessHandler;
-
     private final CustomOAuth2UserService oauthUserService;
-
     private final CrmUserDetails crmUserDetails;
-
     private final CustomerUserDetails customerUserDetails;
-
     private final Environment environment;
-
     private final JWTFilter jwtFilter;
-
     private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
-
     private final ApiUserDetails apiUserDetails;
 
     @Autowired
-    public SecurityConfig(OAuthLoginSuccessHandler oAuth2LoginSuccessHandler, CustomOAuth2UserService oauthUserService, CrmUserDetails crmUserDetails,
-                          CustomerUserDetails customerUserDetails, Environment environment, JWTFilter jwtFilter, ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
+    public SecurityConfig(OAuthLoginSuccessHandler oAuth2LoginSuccessHandler,
+                          CustomOAuth2UserService oauthUserService, CrmUserDetails crmUserDetails,
+                          CustomerUserDetails customerUserDetails, Environment environment, JWTFilter jwtFilter,
+                          ApiAuthenticationEntryPoint apiAuthenticationEntryPoint,
                           ApiUserDetails apiUserDetails) {
         this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
         this.oauthUserService = oauthUserService;
@@ -69,16 +58,12 @@ public class SecurityConfig {
     @Order(3)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        HttpSessionCsrfTokenRepository httpSessionCsrfTokenRepository = new HttpSessionCsrfTokenRepository();
-        httpSessionCsrfTokenRepository.setParameterName("csrf");
+        HttpSessionCsrfTokenRepository csrfRepo = new HttpSessionCsrfTokenRepository();
+        csrfRepo.setParameterName("csrf");
 
-        http.csrf((csrf) -> csrf
-                .csrfTokenRepository(httpSessionCsrfTokenRepository)
-        );
+        http.csrf(csrf -> csrf.csrfTokenRepository(csrfRepo));
 
-        http.
-                authorizeHttpRequests((authorize) -> authorize
-
+        http.authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/register/**").permitAll()
                         .requestMatchers("/set-employee-password/**").permitAll()
                         .requestMatchers("/change-password/**").permitAll()
@@ -91,29 +76,25 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/**/manager/**")).hasRole("MANAGER")
                         .requestMatchers("/employee/**").hasAnyRole("MANAGER", "EMPLOYEE")
                         .requestMatchers("/customer/**").hasRole("CUSTOMER")
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
-                .formLogin((form) -> form
+                .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .defaultSuccessUrl("/", true)
                         .failureUrl("/login")
-                        .permitAll()
-                ).userDetailsService(crmUserDetails)
+                        .permitAll())
+                .userDetailsService(crmUserDetails)
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login")
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(oauthUserService))
-                        .successHandler(oAuth2LoginSuccessHandler)
-                ).logout((logout) -> logout
+                        .userInfoEndpoint(userInfo -> userInfo.userService(oauthUserService))
+                        .successHandler(oAuth2LoginSuccessHandler))
+                .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login")
                         .permitAll())
-                .exceptionHandling(exception -> {
-                    exception.accessDeniedHandler(accessDeniedHandler());
-                });
-
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(accessDeniedHandler()));
 
         return http.build();
     }
@@ -126,20 +107,13 @@ public class SecurityConfig {
     @Bean
     @Order(2)
     public SecurityFilterChain customerSecurityFilterChain(HttpSecurity http) throws Exception {
+        HttpSessionCsrfTokenRepository csrfRepo = new HttpSessionCsrfTokenRepository();
+        csrfRepo.setParameterName("csrf");
 
+        http.csrf(csrf -> csrf.csrfTokenRepository(csrfRepo));
 
-        HttpSessionCsrfTokenRepository httpSessionCsrfTokenRepository = new HttpSessionCsrfTokenRepository();
-        httpSessionCsrfTokenRepository.setParameterName("csrf");
-
-        http.csrf((csrf) -> csrf
-                .csrfTokenRepository(httpSessionCsrfTokenRepository)
-                .ignoringRequestMatchers("/api/login")
-        );
-
-        http.securityMatcher("/customer-login/**").
-                authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/api/login").permitAll()
-                        .requestMatchers("/api/**").permitAll()
+        http.securityMatcher("/customer-login/**")
+                .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/set-password/**").permitAll()
                         .requestMatchers("/font-awesome/**").permitAll()
                         .requestMatchers("/fonts/**").permitAll()
@@ -147,15 +121,15 @@ public class SecurityConfig {
                         .requestMatchers("/js/**").permitAll()
                         .requestMatchers("/css/**").permitAll()
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/**/manager/**")).hasRole("MANAGER")
-                        .anyRequest().authenticated()
-                )
-                .formLogin((form) -> form
+                        .anyRequest().authenticated())
+                .formLogin(form -> form
                         .loginPage("/customer-login")
                         .loginProcessingUrl("/customer-login")
                         .failureUrl("/customer-login")
                         .defaultSuccessUrl("/", true)
-                        .permitAll()).userDetailsService(customerUserDetails)
-                .logout((logout) -> logout
+                        .permitAll())
+                .userDetailsService(customerUserDetails)
+                .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/customer-login")
                         .permitAll());
@@ -164,24 +138,25 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
     @Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/**") // Isole les routes API
-                .csrf(csrf -> csrf.disable()) // Désactive CSRF pour les appels API (JSON)
+                .securityMatcher("/api/**")
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/**").permitAll()
-                        .requestMatchers("/api/login").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .formLogin(AbstractHttpConfigurer::disable) // Désactive le formulaire HTML
-                .httpBasic(AbstractHttpConfigurer::disable) // Désactive l’auth basic
+                        .requestMatchers(
+                                "/api/login",
+                                "/api/lead-expenses/**",
+                                "/api/leads/**",
+                                "/api/tickets/**",
+                                "/api/budget/**",
+                                "/api/rate-configs/**",
+                                "/api/ticket-expenses/**"
+                        ).permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setContentType("application/json");
@@ -192,19 +167,37 @@ public class SecurityConfig {
                             response.setContentType("application/json");
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                             response.getWriter().write("{\"error\": \"Access Denied\"}");
-                        })
-                )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);;
+                        }))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http, PasswordEncoder passwordEncoder) throws Exception {
+    public AuthenticationManager authenticationManager(HttpSecurity http, PasswordEncoder passwordEncoder)
+            throws Exception {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
                 .userDetailsService(apiUserDetails)
                 .passwordEncoder(passwordEncoder)
                 .and()
                 .build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring()
+                .requestMatchers(
+                        "/api/tickets/**",
+                        "/api/lead-expenses/**",
+                        "/api/leads/**",
+                        "/api/budget/**",
+                        "/api/rate-configs/**",
+                        "/api/ticket-expenses/**"
+                );
     }
 }

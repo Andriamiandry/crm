@@ -1,9 +1,9 @@
 package site.easy.to.build.crm.service.lead;
 
-import java.util.List;
-
 import site.easy.to.build.crm.entity.Customer;
 import site.easy.to.build.crm.entity.Lead;
+
+import java.util.List;
 
 public interface LeadService {
     public Lead findByLeadId(int id);
