@@ -588,3 +588,6 @@ CREATE TABLE IF NOT EXISTS `rate_config` (
    `created_at`  DATE NOT NULL,
    PRIMARY KEY(`id` )
 );
+
+
+INSERT INTO rate_config (rate,created_at) VALUES (50,'2025-03-23');

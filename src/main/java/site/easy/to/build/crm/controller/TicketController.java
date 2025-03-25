@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,12 +29,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.persistence.EntityManager;
 import site.easy.to.build.crm.entity.Customer;
 import site.easy.to.build.crm.entity.CustomerLoginInfo;
 import site.easy.to.build.crm.entity.EmailTemplate;
 import site.easy.to.build.crm.entity.OAuthUser;
+import site.easy.to.build.crm.entity.RateConfig;
 import site.easy.to.build.crm.entity.Ticket;
 import site.easy.to.build.crm.entity.TicketExpense;
 import site.easy.to.build.crm.entity.TicketHisto;
@@ -41,7 +44,9 @@ import site.easy.to.build.crm.entity.User;
 import site.easy.to.build.crm.entity.settings.TicketEmailSettings;
 import site.easy.to.build.crm.google.service.acess.GoogleAccessService;
 import site.easy.to.build.crm.google.service.gmail.GoogleGmailApiService;
+import site.easy.to.build.crm.service.budget.BudgetService;
 import site.easy.to.build.crm.service.customer.CustomerService;
+import site.easy.to.build.crm.service.rate.RateConfigService;
 import site.easy.to.build.crm.service.settings.TicketEmailSettingsService;
 import site.easy.to.build.crm.service.ticket.TicketExpenseService;
 import site.easy.to.build.crm.service.ticket.TicketHistoService;
@@ -66,13 +71,16 @@ public class TicketController {
     private final EntityManager entityManager;
     private final TicketHistoService ticketHistoService;
     private final TicketExpenseService ticketExpenseService;
+    private final BudgetService budgetService;
+    private final RateConfigService rateConfigService;
 
     @Autowired
     public TicketController(TicketService ticketService, AuthenticationUtils authenticationUtils,
             UserService userService, CustomerService customerService,
             TicketEmailSettingsService ticketEmailSettingsService, GoogleGmailApiService googleGmailApiService,
             EntityManager entityManager, TicketHistoService ticketHistoService,
-            TicketExpenseService ticketExpenseService) {
+            TicketExpenseService ticketExpenseService, BudgetService budgetService,
+            RateConfigService rateConfigService) {
         this.ticketService = ticketService;
         this.authenticationUtils = authenticationUtils;
         this.userService = userService;
@@ -82,6 +90,8 @@ public class TicketController {
         this.entityManager = entityManager;
         this.ticketHistoService = ticketHistoService;
         this.ticketExpenseService = ticketExpenseService;
+        this.budgetService = budgetService;
+        this.rateConfigService = rateConfigService;
     }
 
     @GetMapping("/show-ticket/{id}")
@@ -133,6 +143,10 @@ public class TicketController {
 
     @GetMapping("/create-ticket")
     public String showTicketCreationForm(Model model, Authentication authentication) {
+        System.out.println("Ticket data in showTicketCreationForm: " + model.getAttribute("ticket"));
+        if (!model.containsAttribute("ticket")) {
+            model.addAttribute("ticket", new Ticket());
+        }
         int userId = authenticationUtils.getLoggedInUserId(authentication);
         User user = userService.findById(userId);
         if (user.isInactiveUser()) {
@@ -151,16 +165,18 @@ public class TicketController {
 
         model.addAttribute("employees", employees);
         model.addAttribute("customers", customers);
-        model.addAttribute("ticket", new Ticket());
+        // model.addAttribute("ticket", new Ticket());
         return "ticket/create-ticket";
     }
 
     @PostMapping("/create-ticket")
     public String createTicket(@ModelAttribute("ticket") @Validated Ticket ticket, BindingResult bindingResult,
+            @RequestParam(name = "confirm", required = false) Boolean confirm,
             @RequestParam("customerId") int customerId,
             @RequestParam("expense_ticket") BigDecimal expense,
             @RequestParam("employeeId") int employeeId,
-            Authentication authentication, Model model) {
+            Authentication authentication, Model model, RedirectAttributes redirectAttributes) {
+        System.out.println("creating ticket....");
         int userId = authenticationUtils.getLoggedInUserId(authentication);
         User manager = userService.findById(userId);
         if (manager == null) {
@@ -197,6 +213,18 @@ public class TicketController {
                 return "error/500";
             }
         }
+        System.out.println("customerID:" + customerId + "");
+
+        if (budgetService.isBudgetTargetReached(customerId, expense)) {
+            if (confirm == null || !confirm) {
+                redirectAttributes.addFlashAttribute("ticket", ticket);
+                redirectAttributes.addFlashAttribute("customerId", customerId);
+                redirectAttributes.addFlashAttribute("expense_ticket", expense);
+                redirectAttributes.addFlashAttribute("employeeId", employeeId);
+                redirectAttributes.addFlashAttribute("requireConfirmation", true);
+                return "redirect:/employee/ticket/create-ticket";
+            }
+        }
 
         ticket.setCustomer(customer);
         ticket.setManager(manager);
@@ -213,6 +241,15 @@ public class TicketController {
         ticketExpense.setAmount(expense);
         ticketExpense.setCreatedAt(LocalDateTime.now());
         ticketExpenseService.save(ticketExpense);
+
+        if (budgetService.isRateAlertReached(customerId, expense)) {
+            System.out.println("rate reached");
+            Optional<RateConfig> rateConfig = rateConfigService.findLatest();
+            BigDecimal tauxAlert = rateConfig.get().getRate();
+            redirectAttributes.addFlashAttribute("alertMessage",
+                    "Attention : Les dépenses ont dépassé le taux d'alerte de " + tauxAlert + "%");
+            return "redirect:/employee/ticket/create-ticket";
+        }
 
         return "redirect:/employee/ticket/assigned-tickets";
     }
@@ -349,7 +386,7 @@ public class TicketController {
             return "error/500";
         }
 
-        if (bindingResult.hasErrors()) {  // TODO corrige code
+        if (bindingResult.hasErrors()) {
             ticket.setEmployee(employee);
             ticket.setManager(manager);
             ticket.setCustomer(customer);
