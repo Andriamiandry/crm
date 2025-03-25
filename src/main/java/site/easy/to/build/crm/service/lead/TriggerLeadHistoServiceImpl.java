@@ -2,9 +2,11 @@ package site.easy.to.build.crm.service.lead;
 
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import site.easy.to.build.crm.entity.TriggerLeadHisto;
 import site.easy.to.build.crm.repository.TriggerLeadHistoRepository;
 @Service
+@Transactional
 public class TriggerLeadHistoServiceImpl implements TriggerLeadHistoService{
     private final TriggerLeadHistoRepository triggerLeadHistoRepository;
 
