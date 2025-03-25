@@ -1,7 +1,13 @@
 package site.easy.to.build.crm.entity.settings;
 
-import jakarta.persistence.*;
-import site.easy.to.build.crm.entity.Customer;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import site.easy.to.build.crm.entity.CustomerLoginInfo;
 import site.easy.to.build.crm.entity.EmailTemplate;
 import site.easy.to.build.crm.entity.User;
@@ -25,6 +31,7 @@ public class LeadEmailSettings extends EmailSettings{
 
     @Column(name = "name")
     private Boolean name;
+    
     @OneToOne
     @JoinColumn(name = "user_id")
     private User user;

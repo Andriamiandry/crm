@@ -1,11 +1,17 @@
 package site.easy.to.build.crm.entity;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
-import org.hibernate.mapping.ToOne;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "trigger_ticket")
@@ -132,5 +138,19 @@ public class Ticket {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public static TicketHisto convertToTicketHisto(Ticket ticket) {
+        TicketHisto ticketHisto = new TicketHisto();
+        ticketHisto.setId(ticket.getTicketId());
+        ticketHisto.setSubject(ticket.getSubject());
+        ticketHisto.setDescription(ticket.getDescription());
+        ticketHisto.setStatus(ticket.getStatus());
+        ticketHisto.setPriority(ticket.getPriority());
+        ticketHisto.setManager(ticket.getManager());
+        ticketHisto.setEmployee(ticket.getEmployee());
+        ticketHisto.setCustomer(ticket.getCustomer());
+        ticketHisto.setCreatedAt(ticket.getCreatedAt());
+        return ticketHisto;
     }
 }
