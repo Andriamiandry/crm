@@ -127,7 +127,7 @@ public final class ConstraintCSV {
         public List<String> getValue(String cell,int line) throws CSVException {
             try{
                 List<String> value=new ArrayList<>();
-                String[] foreignKeySplitted=cell.split(",");
+                String[] foreignKeySplitted=cell.split(";");
                 for(String foreignKey:foreignKeySplitted){
                     value.add(foreignKey.replace(" ",""));
                 }
