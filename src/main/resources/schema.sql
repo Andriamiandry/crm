@@ -505,3 +505,70 @@ CREATE TABLE IF NOT EXISTS `google_drive_file` (
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+
+CREATE TABLE IF NOT EXISTS `temp_tab` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE IF NOT EXISTS `trigger_ticket_histo` (
+  `id` int unsigned NOT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `description` text,
+  `status` varchar(50) DEFAULT NULL,
+  `priority` varchar(50) DEFAULT NULL,
+  `customer_id` int unsigned NOT NULL,
+  `manager_id` int DEFAULT NULL,
+  `employee_id` int DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `delete_at` datetime DEFAULT NULL, -- Colonne supplémentaire pour la date de suppression
+  PRIMARY KEY (`id`),
+  KEY `fk_ticket_histo_customer` (`customer_id`),
+  KEY `fk_ticket_histo_manager` (`manager_id`),
+  KEY `fk_ticket_histo_employee` (`employee_id`),
+  CONSTRAINT `fk_ticket_histo_customer` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`),
+  CONSTRAINT `fk_ticket_histo_manager` FOREIGN KEY (`manager_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_ticket_histo_employee` FOREIGN KEY (`employee_id`) REFERENCES `users` (`id`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+--
+-- Table structure for table `trigger_contract`
+--
+
+
+
+
+CREATE TABLE IF NOT EXISTS `ticket_expense` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `amount` decimal(18,2) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `ticket_histo_id` int unsigned NOT NULL, -- Renommer id_1 en ticket_histo_id
+  PRIMARY KEY (`id`),
+  KEY `fk_ticket_expense_histo` (`ticket_histo_id`),
+  CONSTRAINT `fk_ticket_expense_histo` FOREIGN KEY (`ticket_histo_id`) REFERENCES `trigger_ticket_histo` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+
+CREATE TABLE IF NOT EXISTS `trigger_lead_histo` (
+    `id` INT,
+    `name` VARCHAR(255),
+    `phone` VARCHAR(20),
+    `status` VARCHAR(50),
+    `meeting_id` VARCHAR(255),
+    `google_drive` TINYINT(1),
+    `google_drive_folder_id` VARCHAR(255),
+    `delete_at` datetime DEFAULT NULL,
+    PRIMARY KEY (`id`), -- Utilisez `id` comme clé primaire
+    UNIQUE (`meeting_id`)
+);
+
+-- Table lead_expense
+CREATE TABLE IF NOT EXISTS `lead_expense` (
+    `id` INT AUTO_INCREMENT,
+    `amount` DECIMAL(18, 2) NOT NULL,
+    `created_at` datetime DEFAULT NULL,
+    `trigger_lead_histo_id` INT NOT NULL, -- Renommez pour plus de clarté
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`trigger_lead_histo_id`) REFERENCES `trigger_lead_histo`(`id`)
+);
